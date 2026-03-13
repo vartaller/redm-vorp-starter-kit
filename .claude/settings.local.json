@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(grep -r \"tab\\\\|Tab\\\\|equip\\\\|loadout\" E:/Games/RedM/vorp_inventory/html/ --include=*.js -l)",
-      "Bash(/dev/null echo:*)"
+      "Bash(/dev/null echo:*)",
+      "Bash(xargs grep:*)",
+      "Bash(head -30 grep -n \"Scenario\\\\|scenario\\\\|TaskStart\\\\|CreatePed\\\\|npc\\\\|Npc\\\\|NPC\\\\|open\\\\|closed\" \"E:/Games/RedM/dev/resources/vorp_postman/vorp_postman/config.lua\")"
     ]
   }
 }
