@@ -7,7 +7,7 @@ Config.EventInterval = 90
 Config.MaxEvents = 3
 
 -- Событие спавнится в этом радиусе от центра зоны (метры)
-Config.SpawnDistance = 80.0
+Config.SpawnDistance = 120.0
 
 -- Если игрок удалился дальше — событие удаляется
 Config.DespawnDistance = 200.0
@@ -18,18 +18,53 @@ Config.DespawnDistance = 200.0
 Config.Events = {
     fight = {
         enabled  = true,
-        weight   = 40,
+        weight   = 25,
         duration = 90,
     },
     drunk = {
         enabled  = true,
-        weight   = 30,
+        weight   = 15,
         duration = 180,
     },
     chase = {
         enabled  = true,
-        weight   = 30,
+        weight   = 20,
         duration = 120,
+    },
+    brawl = {
+        enabled  = true,
+        weight   = 20,
+        duration = 90,
+    },
+    body = {
+        enabled  = true,
+        weight   = 10,
+        duration = 300,   -- тело лежит дольше
+    },
+    robbery = {
+        enabled  = true,
+        weight   = 20,
+        duration = 60,
+    },
+    argument = {
+        enabled  = true,
+        weight   = 15,
+        duration = 120,
+    },
+    wolf_pack = {
+        enabled  = true,
+        weight   = 15,
+        duration = 120,
+    },
+    bear_sighting = {
+        enabled  = true,
+        weight   = 8,
+        duration = 180,
+    },
+    runaway_horse = {
+        enabled  = true,
+        weight   = 12,
+        duration = 90,
     },
 }
 
@@ -44,24 +79,38 @@ Config.SpawnZones = {
 }
 
 -- ─── Модели педов ─────────────────────────────────────────────────────────────
--- Если модель не спавнится в игре — замени на рабочую через EasyAdmin → Ped Spawner
 Config.Models = {
     -- Обычные жители для драки/пьяного
     males = {
-        "a_m_m_saloon_fight_01",
-        "a_m_y_saloon_fight_01",
-        "a_m_o_saloon_fight_01",
-        "a_m_m_miningtown01",
-        "a_m_m_miningtown02",
+        "A_M_M_ValFarmer_01",
+        "S_M_M_BwmWorker_01",
+        "S_M_M_CghWorker_01",
+        "S_M_M_LiveryWorker_01",
+        "A_M_M_BiVWorker_01",
     },
-    -- Шерифы/стражники для погони
+    -- Шерифы для погони
     law = {
-        "g_m_m_unisheriff_01",
-        "g_m_m_unisheriff_02",
+        "U_M_M_ValSheriff_01",
+        "U_M_M_RhdSheriff_01",
     },
     -- Разбойники/беглецы для погони
     outlaws = {
-        "g_m_m_unibounty_01",
-        "a_m_m_rancher01",
+        "G_M_M_UniBanditos_01",
+        "U_M_M_BHT_BANDITOMINE",
+        "U_M_M_BHT_BANDITOSHACK",
+    },
+    -- Животные (спавн на окраине города)
+    wolves = {
+        "A_C_Wolf",
+        "A_C_Wolf_Medium",
+    },
+    bears = {
+        "A_C_Bear_01",
+        "A_C_BearBlack_01",
+    },
+    horses = {
+        "A_C_Horse_AmericanPaint_Overo",
+        "A_C_Horse_AmericanStandardbred_Black",
+        "A_C_Horse_Andalusian_DarkBay",
     },
 }

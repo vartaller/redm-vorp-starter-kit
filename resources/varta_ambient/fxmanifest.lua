@@ -7,3 +7,4 @@ lua54 'yes'
 
 shared_scripts { 'config.lua' }
 client_script  'client/main.lua'
+server_script  'server/main.lua'

@@ -1,5 +1,5 @@
-local activeEvents = {}
-local eventTimer   = 0
+-- spawnedPeds[eventId] = { ped, ped, ... }
+local spawnedPeds = {}
 
 -- ─── Утилиты ──────────────────────────────────────────────────────────────────
 
@@ -18,6 +18,7 @@ local function LoadModel(model)
     return hash
 end
 
+-- isNetwork = true → NPC синхронизируется на всех игроков
 local function SpawnNPC(model, pos, heading)
     local hash = LoadModel(model)
     if not hash then return nil end
@@ -29,27 +30,25 @@ local function SpawnNPC(model, pos, heading)
     return ped
 end
 
-local function RandomOffset(minDist, maxDist)
-    local angle = math.random() * math.pi * 2
-    local dist  = minDist + math.random() * (maxDist - minDist)
-    return vector3(math.cos(angle) * dist, math.sin(angle) * dist, 0.0)
+local function RandOffset(minD, maxD)
+    local a = math.random() * math.pi * 2
+    local d = minD + math.random() * (maxD - minD)
+    return vector3(math.cos(a) * d, math.sin(a) * d, 0.0)
 end
 
-local function RandomModel(list)
-    return list[math.random(#list)]
-end
+local function RandModel(t) return t[math.random(#t)] end
 
--- ─── Событие: Драка ───────────────────────────────────────────────────────────
+-- ─── Типы событий ─────────────────────────────────────────────────────────────
 
-local function CreateFightEvent(center)
-    local pos  = center + RandomOffset(20.0, 50.0)
-    local ped1 = SpawnNPC(RandomModel(Config.Models.males), pos + vector3( 2.0, 0.0, 0.0), 270.0)
-    local ped2 = SpawnNPC(RandomModel(Config.Models.males), pos + vector3(-2.0, 0.0, 0.0),  90.0)
+local function SpawnFight(center)
+    local pos  = center + RandOffset(20.0, 50.0)
+    local ped1 = SpawnNPC(RandModel(Config.Models.males), pos + vector3( 2.0, 0.0, 0.0), 270.0)
+    local ped2 = SpawnNPC(RandModel(Config.Models.males), pos + vector3(-2.0, 0.0, 0.0),  90.0)
 
     if not ped1 or not ped2 then
         if ped1 then DeleteEntity(ped1) end
         if ped2 then DeleteEntity(ped2) end
-        return nil
+        return {}
     end
 
     SetBlockingOfNonTemporaryEvents(ped1, false)
@@ -57,170 +56,211 @@ local function CreateFightEvent(center)
     TaskCombatPed(ped1, ped2, 0, 16)
     TaskCombatPed(ped2, ped1, 0, 16)
 
-    return {
-        type     = "fight",
-        peds     = { ped1, ped2 },
-        pos      = pos,
-        created  = GetGameTimer(),
-        duration = Config.Events.fight.duration * 1000,
-    }
+    return { ped1, ped2 }
 end
 
--- ─── Событие: Пьяный прохожий ─────────────────────────────────────────────────
-
-local function CreateDrunkEvent(center)
-    local pos = center + RandomOffset(15.0, 60.0)
-    local ped = SpawnNPC(RandomModel(Config.Models.males), pos, math.random() * 360.0)
-    if not ped then return nil end
-
-    -- Свободное блуждание; SetBlockingOfNonTemporaryEvents(false) позволяет
-    -- педу реагировать на выстрелы и других NPC
+local function SpawnDrunk(center)
+    local pos = center + RandOffset(15.0, 60.0)
+    local ped = SpawnNPC(RandModel(Config.Models.males), pos, math.random() * 360.0)
+    if not ped then return {} end
     SetBlockingOfNonTemporaryEvents(ped, false)
     TaskWanderStandard(ped, 5.0, 10)
-
-    return {
-        type     = "drunk",
-        peds     = { ped },
-        pos      = pos,
-        created  = GetGameTimer(),
-        duration = Config.Events.drunk.duration * 1000,
-    }
+    return { ped }
 end
 
--- ─── Событие: Погоня ──────────────────────────────────────────────────────────
-
-local function CreateChaseEvent(center)
-    local pos    = center + RandomOffset(30.0, 70.0)
-    local outlaw = SpawnNPC(RandomModel(Config.Models.outlaws), pos,                              math.random() * 360.0)
-    local law1   = SpawnNPC(RandomModel(Config.Models.law),    pos + vector3(14.0,  5.0, 0.0), 200.0)
-    local law2   = SpawnNPC(RandomModel(Config.Models.law),    pos + vector3(14.0, -5.0, 0.0), 200.0)
+local function SpawnChase(center)
+    local pos    = center + RandOffset(30.0, 70.0)
+    local outlaw = SpawnNPC(RandModel(Config.Models.outlaws), pos, math.random() * 360.0)
+    local law1   = SpawnNPC(RandModel(Config.Models.law), pos + vector3(14.0,  5.0, 0.0), 200.0)
+    local law2   = SpawnNPC(RandModel(Config.Models.law), pos + vector3(14.0, -5.0, 0.0), 200.0)
 
     if not outlaw then
         if law1 then DeleteEntity(law1) end
         if law2 then DeleteEntity(law2) end
-        return nil
+        return {}
     end
 
     local pistol = joaat("weapon_revolver_cattleman")
     local peds   = { outlaw }
 
-    if law1 then
-        GiveWeaponToPed(law1, pistol, 24, false, true)
-        SetBlockingOfNonTemporaryEvents(law1, false)
-        TaskCombatPed(law1, outlaw, 0, 16)
-        peds[#peds + 1] = law1
-    end
-    if law2 then
-        GiveWeaponToPed(law2, pistol, 24, false, true)
-        SetBlockingOfNonTemporaryEvents(law2, false)
-        TaskCombatPed(law2, outlaw, 0, 16)
-        peds[#peds + 1] = law2
+    for _, law in ipairs({ law1, law2 }) do
+        if law then
+            GiveWeaponToPed(law, pistol, 24, false, true)
+            SetBlockingOfNonTemporaryEvents(law, false)
+            TaskCombatPed(law, outlaw, 0, 16)
+            peds[#peds + 1] = law
+        end
     end
 
-    -- Беглец убегает от ближайшего стражника
-    -- TaskSmartFleePed(ped, fromPed, distance, fleeTime, onFoot, unknown)
     SetBlockingOfNonTemporaryEvents(outlaw, false)
-    local chaser = law1 or law2
-    if chaser then
-        TaskSmartFleePed(outlaw, chaser, 300.0, -1, false, false)
-    else
-        TaskWanderStandard(outlaw, 10.0, 10)
-    end
+    TaskSmartFleePed(outlaw, law1 or law2, 300.0, -1, false, false)
 
-    return {
-        type     = "chase",
-        peds     = peds,
-        pos      = pos,
-        created  = GetGameTimer(),
-        duration = Config.Events.chase.duration * 1000,
-    }
+    return peds
 end
 
--- ─── Менеджер событий ─────────────────────────────────────────────────────────
+local function SpawnBrawl(center)
+    local pos   = center + RandOffset(20.0, 50.0)
+    local count = math.random(3, 4)
+    local peds  = {}
 
-local function CleanupEvent(event)
-    for _, ped in ipairs(event.peds) do
-        if DoesEntityExist(ped) then
-            DeleteEntity(ped)
+    for i = 1, count do
+        local angle  = (i - 1) * (math.pi * 2 / count)
+        local offset = vector3(math.cos(angle) * 2.5, math.sin(angle) * 2.5, 0.0)
+        local ped    = SpawnNPC(RandModel(Config.Models.males), pos + offset, math.random() * 360.0)
+        if ped then
+            SetBlockingOfNonTemporaryEvents(ped, false)
+            peds[#peds + 1] = ped
         end
     end
+
+    if #peds < 2 then
+        for _, p in ipairs(peds) do DeleteEntity(p) end
+        return {}
+    end
+
+    -- Каждый бьёт следующего по кругу
+    for i, ped in ipairs(peds) do
+        TaskCombatPed(ped, peds[i % #peds + 1], 0, 16)
+    end
+
+    return peds
 end
 
--- Взвешенный случайный выбор из Config.Events
-local function PickEventType()
-    local total = 0
-    for _, cfg in pairs(Config.Events) do
-        if cfg.enabled then total = total + cfg.weight end
+local function SpawnBody(center)
+    local pos = center + RandOffset(10.0, 50.0)
+    local ped = SpawnNPC(RandModel(Config.Models.males), pos, math.random() * 360.0)
+    if not ped then return {} end
+    Wait(300)
+    SetEntityHealth(ped, 0, 0)
+    return { ped }
+end
+
+local function SpawnRobbery(center)
+    local pos    = center + RandOffset(20.0, 50.0)
+    local bandit = SpawnNPC(RandModel(Config.Models.outlaws), pos,                               math.random() * 360.0)
+    local victim = SpawnNPC(RandModel(Config.Models.males),   pos + vector3(4.0, 0.0, 0.0), 180.0)
+
+    if not bandit or not victim then
+        if bandit then DeleteEntity(bandit) end
+        if victim then DeleteEntity(victim) end
+        return {}
     end
-    local r, acc = math.random() * total, 0
-    for key, cfg in pairs(Config.Events) do
-        if cfg.enabled then
-            acc = acc + cfg.weight
-            if r <= acc then return key end
+
+    GiveWeaponToPed(bandit, joaat("weapon_revolver_cattleman"), 6, false, true)
+    SetBlockingOfNonTemporaryEvents(bandit, false)
+    SetBlockingOfNonTemporaryEvents(victim, false)
+    TaskCombatPed(bandit, victim, 0, 16)
+    TaskSmartFleePed(victim, bandit, 300.0, -1, false, false)
+
+    return { bandit, victim }
+end
+
+local function SpawnArgument(center)
+    local pos  = center + RandOffset(15.0, 50.0)
+    -- Спавним лицом друг к другу (heading 270 и 90)
+    local ped1 = SpawnNPC(RandModel(Config.Models.males), pos + vector3( 1.5, 0.0, 0.0), 270.0)
+    local ped2 = SpawnNPC(RandModel(Config.Models.males), pos + vector3(-1.5, 0.0, 0.0),  90.0)
+
+    if not ped1 or not ped2 then
+        if ped1 then DeleteEntity(ped1) end
+        if ped2 then DeleteEntity(ped2) end
+        return {}
+    end
+
+    SetBlockingOfNonTemporaryEvents(ped1, false)
+    SetBlockingOfNonTemporaryEvents(ped2, false)
+    -- Сценарий "стоять нетерпеливо" — если не загрузится, просто стоят
+    TaskStartScenarioInPlace(ped1, "WORLD_HUMAN_STAND_IMPATIENT", 0, true)
+    TaskStartScenarioInPlace(ped2, "WORLD_HUMAN_STAND_IMPATIENT", 0, true)
+
+    return { ped1, ped2 }
+end
+
+-- ─── События с животными (спавн на окраине — большой отступ) ─────────────────
+
+local function SpawnWolfPack(center)
+    local pos    = center + RandOffset(100.0, 200.0)
+    local victim = SpawnNPC(RandModel(Config.Models.males), pos, math.random() * 360.0)
+    local peds   = {}
+
+    for i = 1, math.random(2, 3) do
+        local offset = vector3((math.random() - 0.5) * 12.0, (math.random() - 0.5) * 12.0, 0.0)
+        local wolf   = SpawnNPC(RandModel(Config.Models.wolves), pos + offset, math.random() * 360.0)
+        if wolf then
+            SetBlockingOfNonTemporaryEvents(wolf, false)
+            if victim then TaskCombatPed(wolf, victim, 0, 16) end
+            peds[#peds + 1] = wolf
         end
     end
+
+    if victim then
+        SetBlockingOfNonTemporaryEvents(victim, false)
+        if peds[1] then TaskSmartFleePed(victim, peds[1], 300.0, -1, false, false) end
+        peds[#peds + 1] = victim
+    end
+
+    return peds
 end
 
--- Найти ближайшую зону и вернуть её вместе с дистанцией
-local function NearestZone(playerPos)
-    local zone, dist = nil, math.huge
-    for _, z in ipairs(Config.SpawnZones) do
-        local d = #(playerPos - z.pos)
-        if d < dist then zone, dist = z, d end
-    end
-    return zone, dist
+local function SpawnBearSighting(center)
+    local pos  = center + RandOffset(100.0, 200.0)
+    local bear = SpawnNPC(RandModel(Config.Models.bears), pos, math.random() * 360.0)
+    if not bear then return {} end
+    SetBlockingOfNonTemporaryEvents(bear, false)
+    TaskWanderStandard(bear, 10.0, 10)
+    return { bear }
 end
 
-local function TrySpawnEvent(playerPos)
-    local zone, zoneDist = NearestZone(playerPos)
-    if not zone or zoneDist > zone.radius + Config.SpawnDistance then return nil end
-
-    local chosen = PickEventType()
-    if     chosen == "fight" then return CreateFightEvent(zone.pos)
-    elseif chosen == "drunk" then return CreateDrunkEvent(zone.pos)
-    elseif chosen == "chase" then return CreateChaseEvent(zone.pos)
-    end
+local function SpawnRunawayHorse(center)
+    local pos   = center + RandOffset(100.0, 200.0)
+    local horse = SpawnNPC(RandModel(Config.Models.horses), pos, math.random() * 360.0)
+    if not horse then return {} end
+    SetBlockingOfNonTemporaryEvents(horse, false)
+    TaskWanderStandard(horse, 15.0, 5)
+    return { horse }
 end
 
--- ─── Главный поток ────────────────────────────────────────────────────────────
+-- ─── Приём событий от сервера ─────────────────────────────────────────────────
 
-CreateThread(function()
-    repeat Wait(5000) until LocalPlayer.state.IsInSession
-    Wait(2000)
+RegisterNetEvent("varta_ambient:cl:spawnEvent")
+AddEventHandler("varta_ambient:cl:spawnEvent", function(eventId, eventType, zonePos)
+    local peds = {}
 
-    while true do
-        Wait(5000)
-
-        local playerPos = GetEntityCoords(PlayerPedId())
-        local now       = GetGameTimer()
-
-        -- Очищаем истёкшие или далёкие события
-        for i = #activeEvents, 1, -1 do
-            local ev = activeEvents[i]
-            if now - ev.created > ev.duration
-            or #(playerPos - ev.pos) > Config.DespawnDistance then
-                CleanupEvent(ev)
-                table.remove(activeEvents, i)
-            end
-        end
-
-        -- Пробуем спавнить новое событие по таймеру
-        eventTimer = eventTimer + 5
-        if eventTimer >= Config.EventInterval and #activeEvents < Config.MaxEvents then
-            local ev = TrySpawnEvent(playerPos)
-            if ev then
-                activeEvents[#activeEvents + 1] = ev
-                eventTimer = 0
-                print(("[varta_ambient] Событие '%s' создано"):format(ev.type))
-            end
-        end
+    if     eventType == "fight"    then peds = SpawnFight(zonePos)
+    elseif eventType == "drunk"    then peds = SpawnDrunk(zonePos)
+    elseif eventType == "chase"    then peds = SpawnChase(zonePos)
+    elseif eventType == "brawl"    then peds = SpawnBrawl(zonePos)
+    elseif eventType == "body"     then peds = SpawnBody(zonePos)
+    elseif eventType == "robbery"  then peds = SpawnRobbery(zonePos)
+    elseif eventType == "argument"      then peds = SpawnArgument(zonePos)
+    elseif eventType == "wolf_pack"     then peds = SpawnWolfPack(zonePos)
+    elseif eventType == "bear_sighting" then peds = SpawnBearSighting(zonePos)
+    elseif eventType == "runaway_horse" then peds = SpawnRunawayHorse(zonePos)
     end
+
+    spawnedPeds[eventId] = peds
+    print(("[varta_ambient] #%d '%s' → %d NPC"):format(eventId, eventType, #peds))
+    TriggerServerEvent("varta_ambient:sv:spawned", eventId)
+end)
+
+RegisterNetEvent("varta_ambient:cl:cleanup")
+AddEventHandler("varta_ambient:cl:cleanup", function(eventId)
+    local peds = spawnedPeds[eventId]
+    if not peds then return end
+    for _, ped in ipairs(peds) do
+        if DoesEntityExist(ped) then DeleteEntity(ped) end
+    end
+    spawnedPeds[eventId] = nil
 end)
 
 -- ─── Очистка при остановке ресурса ────────────────────────────────────────────
 
 AddEventHandler("onResourceStop", function(res)
     if res ~= GetCurrentResourceName() then return end
-    for _, ev in ipairs(activeEvents) do CleanupEvent(ev) end
-    activeEvents = {}
+    for _, peds in pairs(spawnedPeds) do
+        for _, ped in ipairs(peds) do
+            if DoesEntityExist(ped) then DeleteEntity(ped) end
+        end
+    end
+    spawnedPeds = {}
 end)
