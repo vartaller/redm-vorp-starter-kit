@@ -1,0 +1,5 @@
+trash
+
+# Ignore nested .git files and folders
+**/.git
+**/.git/**

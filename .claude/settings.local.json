@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"tab\\\\|Tab\\\\|equip\\\\|loadout\" E:/Games/RedM/vorp_inventory/html/ --include=*.js -l)"
+    ]
+  }
+}

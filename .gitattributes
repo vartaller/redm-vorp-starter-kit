@@ -1,0 +1,15 @@
+* text=auto eol=lf
+*.lua text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.cfg text eol=lf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.gif binary
+*.ogg binary
+*.mp3 binary
+*.wav binary
+*.ytd binary
+*.ydr binary
