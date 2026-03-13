@@ -1,7 +1,7 @@
 Config = {}
 
 -- Интервал между спавном новых событий (секунды)
-Config.EventInterval = 90
+Config.EventInterval = 60
 
 -- Максимум одновременных событий на одного клиента
 Config.MaxEvents = 3
