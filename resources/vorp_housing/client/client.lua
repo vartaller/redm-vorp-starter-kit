@@ -2,9 +2,8 @@ local LIB <const>     = Import({ "/config", 'blips', 'prompts' })
 local CONFIG <const>  = LIB.CONFIG --[[@as vorp_housing_config]]
 local Blips <const>   = LIB.Blips --[[@as MAP]]
 local Prompts <const> = LIB.Prompts --[[@as PROMPTS]]
-local CHARID          = 0
-local OWNED_INDEX     = 0
-local running         = false
+local CHARID       = 0
+local ownedHouses  = {}  -- [houseIndex] = true
 local Core <const>    = exports.vorp_core:GetCore()
 
 local availableHouses = {}
@@ -27,8 +26,8 @@ local function removeBuyPrompt()
     end
 end
 
-local function registerLocations()
-    local values <const> = CONFIG.HOUSES[OWNED_INDEX]
+local function registerLocations(houseIndex)
+    local values <const> = CONFIG.HOUSES[houseIndex]
     local locations <const> = {}
     for _, storage in ipairs(values.STORAGES) do
         table.insert(locations, {
@@ -52,27 +51,26 @@ local function registerLocations()
     }
 
     Prompts:Register(data, function(_, index, _)
-        local location <const> = CONFIG.HOUSES[OWNED_INDEX]
+        local location <const> = CONFIG.HOUSES[houseIndex]
         if not location then return end
         if CHARID == 0 then return end
 
         local storage <const> = location.STORAGES[index]
         if not storage then return end
 
-        TriggerServerEvent("vorp_housing:Server:OpenStorage", OWNED_INDEX, index)
+        TriggerServerEvent("vorp_housing:Server:OpenStorage", houseIndex, index)
     end, true)
 end
 
 
 RegisterNetEvent("vorp_housing:Client:RegisterHouse", function(index, charId)
-    OWNED_INDEX = index
-    CHARID      = charId
+    CHARID = charId
 
-    local value <const> = CONFIG.HOUSES[OWNED_INDEX]
+    local value <const> = CONFIG.HOUSES[index]
     if not value then return end
 
-    if running then return end
-    running = true
+    if ownedHouses[index] then return end
+    ownedHouses[index] = true
 
     if value.BLIP.ENABLE then
         Blips:Create('coords', {
@@ -95,7 +93,7 @@ RegisterNetEvent("vorp_housing:Client:RegisterHouse", function(index, charId)
     end
 
     Wait(5000)
-    registerLocations()
+    registerLocations(index)
 end)
 
 
