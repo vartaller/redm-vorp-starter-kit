@@ -51,11 +51,16 @@ AddEventHandler("vorp:SelectedCharacter", function(source, character)
     local charId <const>  = character.charIdentifier
     print(("[vorp_housing] [SV] Character selected: charId=%d source=%d"):format(charId, _source))
 
-    -- Load owned house from DB
+    -- Load ALL owned houses from DB
     MySQL.query('SELECT id FROM housing WHERE charidentifier = ?', { charId }, function(owned)
-        if owned and owned[1] then
-            print(("[vorp_housing] [SV] charId=%d owns house #%d, registering..."):format(charId, owned[1].id))
-            registerHouseForPlayer(_source, owned[1].id, charId)
+        if owned and #owned > 0 then
+            for _, row in ipairs(owned) do
+                local houseIndex = tonumber(row.id)
+                if houseIndex then
+                    print(("[vorp_housing] [SV] charId=%d owns house #%d, registering..."):format(charId, houseIndex))
+                    registerHouseForPlayer(_source, houseIndex, charId)
+                end
+            end
         else
             print(("[vorp_housing] [SV] charId=%d has no house"):format(charId))
         end
