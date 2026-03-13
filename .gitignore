@@ -1,5 +1,26 @@
-trash
+### Server ###
+trash/
 
-# Ignore nested .git files and folders
+### Nested git metadata ###
 **/.git
 **/.git/**
+
+### GitHub meta (не нужны в своём приватном репо) ###
+**/.github/
+
+### Node.js (сборка UI скриптов) ###
+**/node_modules/
+
+### OS ###
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+### Editors ###
+.vscode/
+.idea/
+*.swp
+*.swo
+
+### Logs ###
+*.log
