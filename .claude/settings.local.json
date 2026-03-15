@@ -5,7 +5,8 @@
       "Bash(/dev/null echo:*)",
       "Bash(xargs grep:*)",
       "Bash(head -30 grep -n \"Scenario\\\\|scenario\\\\|TaskStart\\\\|CreatePed\\\\|npc\\\\|Npc\\\\|NPC\\\\|open\\\\|closed\" \"E:/Games/RedM/dev/resources/vorp_postman/vorp_postman/config.lua\")",
-      "mcp__483896e2-a249-48a7-a0b3-39e962cf37ed__notion-create-pages"
+      "mcp__483896e2-a249-48a7-a0b3-39e962cf37ed__notion-create-pages",
+      "WebSearch"
     ]
   }
 }
