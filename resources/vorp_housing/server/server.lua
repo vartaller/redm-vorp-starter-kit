@@ -38,10 +38,13 @@ local function registerHouseForPlayer(source, houseIndex, charId)
     registerStorages(houseIndex)
 
     SetTimeout(5000, function()
-        for _, door in ipairs(house.DOORS) do
-            exports.vorp_doorlocks:updateDoorPermission(source, door, true)
-        end
         TriggerClientEvent("vorp_housing:Client:RegisterHouse", source, houseIndex, charId)
+        for _, door in ipairs(house.DOORS) do
+            local ok, err = pcall(exports.vorp_doorlocks.updateDoorPermission, exports.vorp_doorlocks, source, door, true)
+            if not ok then
+                print(("[vorp_housing] [SV] door %d permission error: %s"):format(door, tostring(err)))
+            end
+        end
     end)
 end
 
@@ -51,11 +54,16 @@ AddEventHandler("vorp:SelectedCharacter", function(source, character)
     local charId <const>  = character.charIdentifier
     print(("[vorp_housing] [SV] Character selected: charId=%d source=%d"):format(charId, _source))
 
-    -- Load owned house from DB
+    -- Load ALL owned houses from DB
     MySQL.query('SELECT id FROM housing WHERE charidentifier = ?', { charId }, function(owned)
-        if owned and owned[1] then
-            print(("[vorp_housing] [SV] charId=%d owns house #%d, registering..."):format(charId, owned[1].id))
-            registerHouseForPlayer(_source, owned[1].id, charId)
+        if owned and #owned > 0 then
+            for _, row in ipairs(owned) do
+                local houseIndex = tonumber(row.id)
+                if houseIndex then
+                    print(("[vorp_housing] [SV] charId=%d owns house #%d, registering..."):format(charId, houseIndex))
+                    registerHouseForPlayer(_source, houseIndex, charId)
+                end
+            end
         else
             print(("[vorp_housing] [SV] charId=%d has no house"):format(charId))
         end
@@ -151,7 +159,7 @@ RegisterServerEvent("vorp_housing:Server:OpenStorage", function(index, storageIn
         end
 
         local pedCoords <const> = GetEntityCoords(GetPlayerPed(_source))
-        if #(pedCoords - house.POSITION) > 10.0 then return print("Player is not close to the house") end
+        if #(pedCoords - house.POSITION) > 50.0 then return print("Player is not close to the house") end
 
         local storage <const> = house.STORAGES[storageIndex]
         if not storage then return print("Storage not found") end
@@ -166,15 +174,3 @@ RegisterServerEvent("vorp_housing:Server:OpenStorage", function(index, storageIn
 end)
 
 
-if CONFIG.DEV_MODE then
-    RegisterCommand(CONFIG.COMMAND, function(source)
-        local user <const> = Core.getUser(source)
-        if not user then return end
-        local group <const> = user.getGroup
-        if group ~= "admin" then
-            TriggerClientEvent("vorp_housing:Client:Notify", source, CONFIG.TRANSLATION.not_admin, 5000)
-            return
-        end
-        TriggerClientEvent("vorp_housing:Client:ShowHouses", source)
-    end, false)
-end

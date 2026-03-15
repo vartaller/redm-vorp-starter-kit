@@ -33,7 +33,8 @@ CONFIG.HOUSE_PRICES = {
     1155.0,  -- 11: House on the Dakota River
     995.0,   -- 12: Big Valley Farm House
     1275.0,  -- 13: House on the Little Creek River
-    2456.0,  -- 14: Farm House on the outskirts of Blackwater
+    2456.0,  -- 14: Braithwaite Manor
+    2456.0,  -- 15: Farm House on the outskirts of Blackwater
 }
 
 -- DOORS ARE HANDLED IN VORP DOORLOCKS
@@ -508,6 +509,47 @@ CONFIG.HOUSES = {
         }
     },
 
+    -- Braithwaite Manor
+    {
+        POSITION = vector3(1011.29, -1755.52, 46.61),
+        BLIP = {
+            ENABLE = true,
+            SPRITE = `blip_mp_base`,
+            STYLE = `BLIP_STYLE_PROPERTY_OWNER`,
+            NAME = "My House",
+        },
+
+        OWNERS = {
+            [1] = {
+                DOOR = true,
+                STORAGE = true,
+                BLIP_VISIBLE = true,
+            },
+        },
+
+        STORAGES = {
+            {
+                ID = 15,
+                MAX_SLOTS = 100,
+                LOCATION = vector3(1018.71, -1764.75, 51.99),
+                LABEL = "Hall Storage",
+                WEAPONS = true,
+                SHARED = true,
+                BLACKLISTED_ITEMS = {},
+            },
+            {
+                ID = 16,
+                MAX_SLOTS = 100,
+                LOCATION = vector3(1004.32, -1776.92, 51.99),
+                LABEL = "Bedroom Storage",
+                WEAPONS = true,
+                SHARED = true,
+                BLACKLISTED_ITEMS = {},
+            },
+        },
+        DOORS = {} -- no door lock control needed for this building
+    },
+
     -- Farm House on the outskirts of Blackwater
     {
         POSITION = vector3(-1641.7750, -1360.7200, 84.4027),
@@ -526,9 +568,9 @@ CONFIG.HOUSES = {
             },
         },
 
-        STORAGES = { -- You can add more than one storage
+        STORAGES = {
             {
-                ID = 15,
+                ID = 17,
                 MAX_SLOTS = 100,
                 LOCATION = vector3(-1642.6538, -1351.1543, 84.4032),
                 LABEL = "Storage",
@@ -537,7 +579,7 @@ CONFIG.HOUSES = {
                 BLACKLISTED_ITEMS = {},
             }
         },
-        DOORS = {       -- DOOR IDS, MUST BE IN VORP DOORLOCKS TO BE DETECTED THESE DOORS DONT NEED PERMISSIONS IN VORP DOORLOCKS SCRIPT
+        DOORS = {
             1606546482, -- Front Door
             1309495497, -- Room 1 Door
             1063695460, -- Room 2 Door

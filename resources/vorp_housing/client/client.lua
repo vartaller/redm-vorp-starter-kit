@@ -2,9 +2,8 @@ local LIB <const>     = Import({ "/config", 'blips', 'prompts' })
 local CONFIG <const>  = LIB.CONFIG --[[@as vorp_housing_config]]
 local Blips <const>   = LIB.Blips --[[@as MAP]]
 local Prompts <const> = LIB.Prompts --[[@as PROMPTS]]
-local CHARID          = 0
-local OWNED_INDEX     = 0
-local running         = false
+local CHARID       = 0
+local ownedHouses  = {}  -- [houseIndex] = true
 local Core <const>    = exports.vorp_core:GetCore()
 
 local availableHouses = {}
@@ -27,8 +26,8 @@ local function removeBuyPrompt()
     end
 end
 
-local function registerLocations()
-    local values <const> = CONFIG.HOUSES[OWNED_INDEX]
+local function registerLocations(houseIndex)
+    local values <const> = CONFIG.HOUSES[houseIndex]
     local locations <const> = {}
     for _, storage in ipairs(values.STORAGES) do
         table.insert(locations, {
@@ -43,38 +42,46 @@ local function registerLocations()
         locations = locations,
         prompts   = {
             {
-                type  = "Press",
-                key   = `INPUT_SHOP_SELL`, -- R
-                label = CONFIG.TRANSLATION.press,
-                mode  = 'Standard',
+                type     = "Hold",
+                key      = `INPUT_SHOP_SELL`, -- R
+                label    = CONFIG.TRANSLATION.press,
+                mode     = "Hold",
+                holdTime = 1500,
             },
         }
     }
 
     Prompts:Register(data, function(_, index, _)
-        local location <const> = CONFIG.HOUSES[OWNED_INDEX]
+        local location <const> = CONFIG.HOUSES[houseIndex]
         if not location then return end
         if CHARID == 0 then return end
 
         local storage <const> = location.STORAGES[index]
         if not storage then return end
 
-        TriggerServerEvent("vorp_housing:Server:OpenStorage", OWNED_INDEX, index)
+        TriggerServerEvent("vorp_housing:Server:OpenStorage", houseIndex, index)
     end, true)
 end
 
 
 RegisterNetEvent("vorp_housing:Client:RegisterHouse", function(index, charId)
-    OWNED_INDEX = index
-    CHARID      = charId
+    print(("[vorp_housing] [CL] RegisterHouse received: index=%d charId=%d"):format(index, charId))
+    CHARID = charId
 
-    local value <const> = CONFIG.HOUSES[OWNED_INDEX]
-    if not value then return end
+    local value <const> = CONFIG.HOUSES[index]
+    if not value then
+        print(("[vorp_housing] [CL] ERROR: CONFIG.HOUSES[%d] is nil!"):format(index))
+        return
+    end
 
-    if running then return end
-    running = true
+    if ownedHouses[index] then
+        print(("[vorp_housing] [CL] House #%d already registered, skipping"):format(index))
+        return
+    end
+    ownedHouses[index] = true
 
     if value.BLIP.ENABLE then
+        print(("[vorp_housing] [CL] Creating owned blip for house #%d at %s"):format(index, tostring(value.POSITION)))
         Blips:Create('coords', {
             Pos   = value.POSITION,
             Blip  = value.BLIP.STYLE,
@@ -95,7 +102,7 @@ RegisterNetEvent("vorp_housing:Client:RegisterHouse", function(index, charId)
     end
 
     Wait(5000)
-    registerLocations()
+    registerLocations(index)
 end)
 
 
@@ -200,15 +207,15 @@ end)
 
 -- Dev mode
 if CONFIG.DEV_MODE then
-    local blips <const> = {}
+    local blips = {}
 
-    RegisterNetEvent("vorp_housing:Client:ShowHouses", function()
+    RegisterCommand(CONFIG.COMMAND, function()
         local houses <const> = CONFIG.HOUSES
 
         for _, blip in ipairs(blips) do
             RemoveBlip(blip)
         end
-        table.wipe(blips)
+        blips = {}
 
         for index, house in ipairs(houses) do
             local blip = Blips:Create('coords', {
@@ -221,5 +228,7 @@ if CONFIG.DEV_MODE then
             })
             table.insert(blips, blip:GetHandle())
         end
-    end)
+
+        print(("[vorp_housing] [CL] showHouses: created %d blips"):format(#houses))
+    end, false)
 end
